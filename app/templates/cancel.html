@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+
+
+
+{% block content %}
+    <h1>Hi, {{current_user.username}}!</h1>
+    <form  action='/handle_data' method = "POST" >
+    <table border="1">
+        <tr>
+            <td>Leave Request ID</td>
+            <td>Start Date</td>
+            <td>End Date</td>
+            <td>Total Days</td>
+            <td>Cancel</td>
+        </tr>
+        {% for leave in leaves %}
+        <tr>
+            <td>{{ leave.id }}</td>
+            <td>{{ leave.startdate }}</td>
+            <td>{{ leave.enddate }}</td>
+            <td>{{ leave.employee_id}}</td>
+            <td><input type="checkbox" value= {{leave.id}} name = "returnthis"/></td>
+        </tr>
+        {% endfor %}
+    </table>
+    <input type = "submit" value = "Confirm">
+</form>    
+{% endblock %}
