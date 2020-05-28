@@ -66,14 +66,29 @@ def register():
 @login_required
 def user_statistics(username):
     user = User.query.filter_by(username = username).first_or_404()
-    posts = [
-        {'author' : user, 'body' : 'Test post #1'},
-        {'author' : user, 'body' : 'Test post #2'}
-    ]
+    # posts = [
+    #     {'author' : user, 'body' : 'Test post #1'},
+    #     {'author' : user, 'body' : 'Test post #2'}
+    # ]
+    leaves = user.leaves.order_by(Leaves.id.asc()).all()
     # display the leave statistics
     # use this as a router to other pages
+    # leaves is a list, index is the leaves id
+    # print(type(leaves[1]))
+    # def count_num_leaves(start_dt, end_dt, public_ls, halfdaybegin, halfdayend):
 
-    return render_template('user_statistics.html', user = user, posts = posts)
+    mod_leaves = [] 
+    approved_days = 0
+    for i in range(len(leaves)):
+        working_days = count_num_leaves(leaves[i].startdate,leaves[i].enddate, leaves[i].halfdayend,leaves[i].halfdaybegin)
+        mod_leaves.append({'leave_id':leaves[i].id,'startdate':leaves[i].startdate, 'enddate': leaves[i].enddate, 'TotalDays':working_days, "Status": leaves[i].status})
+        if leaves[i].status == "Approved":
+            # have to log this in the admin side
+            approved_days += working_days
+    # print(leaves[1].id)
+    # return render_template('user_statistics.html', user = user, leaves = leaves, temp_ls = temp_ls)
+    number_of_leaves_remaining = 15 - approved_days # take this minus the number of days that have approved leaves
+    return render_template('user_statistics.html', user = user, mod_leaves = mod_leaves, number_of_leaves_remaining = number_of_leaves_remaining)
     
 
 
@@ -85,21 +100,33 @@ def leave_cancel(username):
     # once form is validated, we need to upadate the db for leaves of the user
     user = User.query.filter_by(username = username).first_or_404()
     leaves = user.leaves.order_by(Leaves.id.asc()).all()  
-    return render_template('cancel.html', leaves = leaves, user = user, username = username)
-#     leaves = Leave.query.filter_by(userid = user)
+    mod_leaves = [] 
+    approved_days = 0
+    for i in range(len(leaves)):
+        print(leaves[i].status)
+        if leaves[i].status == "Approved" or leaves[i].status ==  "Created": 
+            # approved status only by admin
+            working_days = count_num_leaves(leaves[i].startdate,leaves[i].enddate, leaves[i].halfdayend,leaves[i].halfdaybegin)
+            mod_leaves.append({'leave_id':leaves[i].id,'startdate':leaves[i].startdate, 'enddate': leaves[i].enddate, 'TotalDays':working_days, "Status": leaves[i].status})
+        else:
+            continue
+
+    return render_template('cancel.html', leaves = mod_leaves, user = user, username = username)
 
 
 @app.route('/handle_data', methods = ['POST','GET'])
 @login_required
 def handle_data():
-    
+    """
+    this view is linked to cancelling leave view
+    """
     # user = User.query.filter_by(username = current_user.username).first_or_404()
     path = request.form.getlist("returnthis")
     path = [int(p) for p in path] 
     # leaves = user.leaves.order_by(Leaves.id.asc()).all()  
     for p in path: #for id in list of ids
         delete_q = Leaves.query.get(p) #query by primary key
-        db.session.delete(delete_q)
+        db.session.delete(delete_q) 
     db.session.commit()
     # delete_q = user.leaves.delete().where(user.leaves.id in path)
     # path returned successfully
@@ -119,7 +146,7 @@ def handle_data():
 def leave_request(username):
     form = LeaveRequestForm()
     if form.validate_on_submit():
-        leave = Leaves(startdate = form.startdate.data, enddate = form.enddate.data, note = form.note.data, halfdaybegin = form.halfdaybegin.data, halfdayend = form.halfdayend.data, employee = User.query.filter_by(username = username).first())
+        leave = Leaves(startdate = form.startdate.data, enddate = form.enddate.data, note = form.note.data, halfdaybegin = form.halfdaybegin.data, halfdayend = form.halfdayend.data, employee = User.query.filter_by(username = username).first(), status = "Created")
         db.session.add(leave)
         db.session.commit()
         flash("Leave request submitted")
@@ -128,3 +155,37 @@ def leave_request(username):
     return render_template('leaverequest.html', title = "Leave Request", form = form)    
 
 
+def count_num_leaves(start_dt, end_dt, halfdayend, halfdaybegin):
+        """
+        Helper function to calculate number of work days
+        public_ls is a list of public holidays without weekends
+        """
+        num_days = (end_dt -start_dt).days +1
+        num_weeks =(num_days)//7
+        a=0
+        #condition 1
+        if end_dt.strftime('%a')=='Sat':
+            if start_dt.strftime('%a') != 'Sun':
+                a= 1
+        #condition 2
+        if start_dt.strftime('%a')=='Sun':
+            if end_dt.strftime('%a') !='Sat':
+                a =1
+        #condition 3
+        if end_dt.strftime('%a')=='Sun':
+            if start_dt.strftime('%a') not in ('Mon','Sun'):
+                a =2
+        #condition 4        
+        if start_dt.weekday() not in (0,6):
+            if (start_dt.weekday() -end_dt.weekday()) >=2:
+                a =2
+        working_days =num_days -(num_weeks*2)-a
+
+        less = 0
+        if halfdayend or halfdaybegin:
+            if halfdaybegin and halfdayend:
+                less += 2
+            else:
+                less += 1
+
+        return working_days - less

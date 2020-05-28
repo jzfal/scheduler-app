@@ -4,6 +4,7 @@
 
 {% block content %}
     <h1>Hi, {{current_user.username}}!</h1>
+    <h2>Please select the request which you would like to cancel</h2>
     <form  action='/handle_data' method = "POST" >
     <table border="1">
         <tr>
@@ -11,14 +12,16 @@
             <td>Start Date</td>
             <td>End Date</td>
             <td>Total Days</td>
+            <td>Status</td>
             <td>Cancel</td>
         </tr>
         {% for leave in leaves %}
         <tr>
-            <td>{{ leave.id }}</td>
+            <td>{{ leave.leave_id }}</td>
             <td>{{ leave.startdate }}</td>
             <td>{{ leave.enddate }}</td>
-            <td>{{ leave.employee_id}}</td>
+            <td>{{ leave.TotalDays}}</td>
+            <td>{{ leave.Status}}</td>
             <td><input type="checkbox" value= {{leave.id}} name = "returnthis"/></td>
         </tr>
         {% endfor %}

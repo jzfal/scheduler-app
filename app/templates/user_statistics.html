@@ -1,11 +1,27 @@
 {% extends "base.html" %}
 
 {% block content %}
-    <h1>User: {{ user.username }}</h1>
-    <hr>
-    {% for post in posts %}
-    <p>
-    {{ post.author.username }} says: <b>{{ post.body }}</b>
+    <h1>Hi, {{current_user.username}}!</h1>
+    <table border="1">
+        <tr>
+            <td>Leave Request ID</td>
+            <td>Start Date</td>
+            <td>End Date</td>
+            <td>Total Days</td>
+            <td>Status</td>
+        </tr>
+        {% for leave in mod_leaves %}
+        <tr>
+            <td>{{ leave.leave_id }}</td>
+            <td>{{ leave.startdate }}</td>
+            <td>{{ leave.enddate }}</td>
+            <td>{{ leave.TotalDays}}</td>
+            <td>{{ leave.Status}}</td>
+        </tr>
+        {% endfor %}
+    </table>
+
+    <p>Number of leave days remaining : 
+        <b>{{ number_of_leaves_remaining}}</b>
     </p>
-    {% endfor %}
 {% endblock %}

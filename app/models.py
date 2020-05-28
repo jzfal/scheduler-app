@@ -53,15 +53,20 @@ class Leaves(db.Model):
     halfdaybegin = db.Column(db.Boolean)
     halfdayend = db.Column(db.Boolean)
     employee_id = db.Column(db.Integer, db.ForeignKey('users.id'))
-    # users = db.relationship('User')
+    status = db.Column(db.String(140))
     
-    # setup the relationship
 
     def __repr__(self):
         return '<Leaves {}>'.format(self.note) # for debugging later
 
 
-
+class PublicHolidays(db.Model):
+    """
+    have a form for editing public holidays
+    """
+    __tablename__ = "holidays"
+    id = db.Column(db.Integer, primary_key  = True)
+    # hoilday
 
 
 

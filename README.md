@@ -26,3 +26,28 @@
 
 ### Error when creating instance of Leaves 
 the name of the foreign key has to be the same as the backref
+
+### TO DO 
+- Viewing the list of leave request (show status) for users
+- Seeing their own leaving statistic
+    - Leave left: Number of days left of annual leave
+
+#### for admin
+- editable list of public holidays of a specific year
+- reject or approve a leave request
+    - every leave request needs admins approval
+    - when a user cancels their approved leave request in mid of the period it needs to be approve by an administrator
+
+- Veiwing all peoples leave requests and statistics
+
+
+#### other requirements
+- Annual leave is always 15 days
+- Leave request states
+
+
+### todo:
+- For cancelling, need to add in checker for approve status, approve status can only be given by the admin
+- For leave statistics, need to update with the other status plus need take into account public holidays
+- For admin account, need dbmodel and form for editing the list of public holidays
+
