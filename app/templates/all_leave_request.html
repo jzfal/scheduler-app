@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+
+
+
+{% block content %}
+    <h1>Hi, {{current_user.username}}!</h1>
+    <h2>Please select the request which you would like to approve</h2>
+    <form  action='/handle_all_data' method = "POST" >
+    <table border="1">
+        <tr>
+            <td>User</td>
+            <td>Start Date</td>
+            <td>End Date</td>
+            <td>Take a half at start date</td>
+            <td>Take a half at end date</td>
+            <td>Total Days</td>
+            <td>Status</td>
+            <td>Action</td>
+        </tr>
+        {% for pending in pendings %}
+        <tr>
+            <td>{{ pending.username }}</td>
+            <td>{{ pending.startdate }}</td>
+            <td>{{ pending.enddate }}</td>
+            <td>{{ pending.starthalf}}</td>
+            <td>{{ pending.startend}}</td>
+            <td>{{ pending.TotalDays}}</td>
+            <td>{{ pending.Status}}</td>
+            <td><select id="action" name="action">
+                <option value = {{ "Approved," ~ pending.leave_id ~ }}>Approved</option>
+                <option value = {{ "Rejected," ~ pending.leave_id ~ }}>Rejected</option>
+                <option value = {{ "Canceled," ~ pending.leave_id ~ }}>Canceled</option>
+            </select>
+        </tr>
+        {% endfor %}
+    </table>
+    <input type = "submit" value = "Confirm">
+</form>    
+{% endblock %}

@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+
+
+
+{% block content %}
+    <h1>Hi, {{current_user.username}}!</h1>
+    <h2>Please select the request which you would like to cancel</h2>
+    <form  action='/handle_all_data' method = "POST" >
+    <table border="1">
+        <tr>
+            <td>ID</td>
+            <td>Name</td>
+            <td>Date</td>
+            <td>Remove</td>
+        </tr>
+        {% for hol in holiday %}
+        <tr>
+            <td>{{ hol.holiday_id }}</td>
+            <td>{{ hol.name }}</td>
+            <td>{{ hol.date }}</td>
+            <td><input type="checkbox" value= {{hol.holiday_id}} name = "returnthis1"/></td>
+        </tr>
+        {% endfor %}
+    </table>
+    <input type = "submit" value = "Confirm">
+</form>    
+{% endblock %}

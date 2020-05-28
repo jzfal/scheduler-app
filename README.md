@@ -50,4 +50,18 @@ the name of the foreign key has to be the same as the backref
 - For cancelling, need to add in checker for approve status, approve status can only be given by the admin
 - For leave statistics, need to update with the other status plus need take into account public holidays
 - For admin account, need dbmodel and form for editing the list of public holidays
+- Remove email field from registration
+- Validate leave request form 
+- need to handle the status where user is in the midst of leave, and wants to cancel leave
+    - need to address the cancelling state, wher status is originally "Approved"
+- In order to activate admin, must create user from regristration page
+
+
+### Latest
+
+- Data Models intact
+- Admin registration must be done through registration form
+- Adding new holiday and removing existing holiday in order
+
+- UNABLE TO RESOLVE INNER JOIN TO SHOW ALL THE LEAVE REQUEST
 

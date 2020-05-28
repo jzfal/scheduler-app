@@ -12,6 +12,11 @@
             <a href="{{ url_for('index') }}">Home</a>
             {% if current_user.is_anonymous %} 
             <a href="{{ url_for('login') }}">Login</a> 
+            {% elif  current_user.is_administrator() %}
+            <a href="{{ url_for('public_holiday') }}">New Holiday</a> 
+            <a href="{{ url_for('holidays_list') }}">Remove Holiday</a> 
+            <a href="{{ url_for('all_leave_request') }}">All Leave Request</a> 
+            <a href="{{ url_for('logout') }}">Logout</a> 
             {% else %} 
             <a href="{{ url_for('user_statistics', username=current_user.username) }}">Leave Statistics</a>
             <a href="{{ url_for('leave_request', username=current_user.username) }}">Leave Request</a>

@@ -5,13 +5,13 @@ from app import app
 from flask import render_template, flash, redirect, url_for
 from app.forms import LoginForm
 from flask_login import current_user, login_user
-from app.models import User, Leaves
+from app.models import User, Leaves, PublicHolidays, Admins
 from flask_login import logout_user
 from flask_login import login_required
 from flask import request
 from werkzeug.urls import url_parse
 from app import db
-from app.forms import RegistrationForm, LeaveRequestForm
+from app.forms import RegistrationForm, LeaveRequestForm, PublicHolidaysForm
 from datetime import date
 
 # index will route to our helper pages lea
@@ -54,7 +54,12 @@ def register():
         return redirect(url_for('index'))
     form = RegistrationForm()
     if form.validate_on_submit():
-        user = User(username=form.username.data, email=form.email.data)
+        if form.username.data in Admins.Admin_ls:
+            admin = True
+        else:
+            admin = False
+        user = User(username=form.username.data, admin = admin)
+        print(admin)
         user.set_password(form.password.data)
         db.session.add(user)
         db.session.commit()
@@ -66,10 +71,6 @@ def register():
 @login_required
 def user_statistics(username):
     user = User.query.filter_by(username = username).first_or_404()
-    # posts = [
-    #     {'author' : user, 'body' : 'Test post #1'},
-    #     {'author' : user, 'body' : 'Test post #2'}
-    # ]
     leaves = user.leaves.order_by(Leaves.id.asc()).all()
     # display the leave statistics
     # use this as a router to other pages
@@ -103,10 +104,11 @@ def leave_cancel(username):
     mod_leaves = [] 
     approved_days = 0
     for i in range(len(leaves)):
-        print(leaves[i].status)
+        # print(leaves[i].status)
         if leaves[i].status == "Approved" or leaves[i].status ==  "Created": 
             # approved status only by admin
             working_days = count_num_leaves(leaves[i].startdate,leaves[i].enddate, leaves[i].halfdayend,leaves[i].halfdaybegin)
+
             mod_leaves.append({'leave_id':leaves[i].id,'startdate':leaves[i].startdate, 'enddate': leaves[i].enddate, 'TotalDays':working_days, "Status": leaves[i].status})
         else:
             continue
@@ -155,37 +157,134 @@ def leave_request(username):
     return render_template('leaverequest.html', title = "Leave Request", form = form)    
 
 
+##### Admin views
+
+@app.route('/holidays_list', methods = ["GET", "POST"])
+@login_required
+def holidays_list():
+    """
+    editable table of holidays, admin is able to cancel the holidays
+    """
+    publicholidays = PublicHolidays.query.order_by(PublicHolidays.date.asc()).all() 
+    public_holidays = [] 
+    approved_days = 0
+    for i in range(len(publicholidays)):
+        public_holidays.append({'holiday_id':publicholidays[i].id,'date':publicholidays[i].date, 'name': publicholidays[i].name})
+
+    return render_template('edit_holiday.html', holiday = public_holidays, username = current_user.username)
+
+
+@app.route('/public_holiday', methods = ["GET", "POST"])
+@login_required
+def public_holiday():
+    """
+    admin view to add new holidays, need validation !
+    """
+    form = PublicHolidaysForm()
+    if form.validate_on_submit():
+        public_holiday = PublicHolidays(name = form.name.data, date = form.date.data)
+        db.session.add(public_holiday)
+        db.session.commit()
+        flash("Public Holiday Added !")
+        return redirect(url_for('holidays_list')) # add url to list of public holidays
+    return render_template('addholiday.html', title = 'Add holiday', form = form, username = current_user.username)
+
+
+@app.route('/all_leave_request', methods = ["GET", "POST"])
+@login_required
+def all_leave_request():
+    """
+    admin view to view all leave request and take action
+
+    if request exceeds capacity, must highlight !
+    """
+    # joined_table = db.session.query(User).outerjoin(Leaves)
+    joined_table = db.session.query(User).join(Leaves).all()
+    print(joined_table)
+    # print(joined_table.query.first())
+    leaves = joined_table
+    # db.session.query(Leaves).select_from(User).\
+    #     filter_by(users.id = )
+    # user = User.query.all()
+    # for u in user:
+    #     print(u.username)
+    # leaves = user.leaves.order_by(Leaves.id.asc()).all()
+    # # need to show all the pending request, 
+    # user = User.query.all() # get all users 
+    # # print(user[0])
+    # leaves = user.leaves.order_by(User.id.asc()).all()  # join all users with leaves table
+    # print(leaves)
+    # raise TypeError
+    pendings = []
+    # for i in range(len(leaves)):
+    #     # print(leaves[i])
+    #     curr_status = leaves[i].status
+    #     if curr_status == "Created" or curr_status == "Cancelling":
+    #         working_days = count_num_leaves(leaves[i].startdate,leaves[i].enddate, leaves[i].halfdayend,leaves[i].halfdaybegin)
+
+    #         pendings.append({'leave_id':leaves[i].id,'username':leaves[i].username,'startdate':leaves[i].startdate, 'enddate': leaves[i].enddate,"starthalf":leaves[i].halfdaybegin,"endhalf":leaves[i].halfdayend,'TotalDays':working_days, "Status": curr_status})
+    #     else:
+    #         continue
+
+    return render_template('all_leave_request.html', pendings = pendings, username = current_user.username)
+
+@app.route('/handle_all_data', methods = ['POST','GET'])
+@login_required
+def handle_all_data():
+    """
+    this view is linked to handling holidaylist
+    """
+    path = request.form.getlist("returnthis1")  
+    for p in path: #for id in list of ids
+        delete_q = PublicHolidays.query.get(p) #query by primary key
+        db.session.delete(delete_q) 
+    db.session.commit()
+    flash('Holiday List updated!')
+    return(redirect(url_for('holidays_list')))
+
+
+
+
+
+
+
+
+
+
+
+#### Utility
+
 def count_num_leaves(start_dt, end_dt, halfdayend, halfdaybegin):
-        """
-        Helper function to calculate number of work days
-        public_ls is a list of public holidays without weekends
-        """
-        num_days = (end_dt -start_dt).days +1
-        num_weeks =(num_days)//7
-        a=0
-        #condition 1
-        if end_dt.strftime('%a')=='Sat':
-            if start_dt.strftime('%a') != 'Sun':
-                a= 1
-        #condition 2
-        if start_dt.strftime('%a')=='Sun':
-            if end_dt.strftime('%a') !='Sat':
-                a =1
-        #condition 3
-        if end_dt.strftime('%a')=='Sun':
-            if start_dt.strftime('%a') not in ('Mon','Sun'):
-                a =2
-        #condition 4        
-        if start_dt.weekday() not in (0,6):
-            if (start_dt.weekday() -end_dt.weekday()) >=2:
-                a =2
-        working_days =num_days -(num_weeks*2)-a
+    """
+    Helper function to calculate number of work days
+    public_ls is a list of public holidays without weekends
+    """
+    num_days = (end_dt -start_dt).days +1
+    num_weeks =(num_days)//7
+    a=0
+    #condition 1
+    if end_dt.strftime('%a')=='Sat':
+        if start_dt.strftime('%a') != 'Sun':
+            a= 1
+    #condition 2
+    if start_dt.strftime('%a')=='Sun':
+        if end_dt.strftime('%a') !='Sat':
+            a =1
+    #condition 3
+    if end_dt.strftime('%a')=='Sun':
+        if start_dt.strftime('%a') not in ('Mon','Sun'):
+            a =2
+    #condition 4        
+    if start_dt.weekday() not in (0,6):
+        if (start_dt.weekday() -end_dt.weekday()) >=2:
+            a =2
+    working_days =num_days -(num_weeks*2)-a
 
-        less = 0
-        if halfdayend or halfdaybegin:
-            if halfdaybegin and halfdayend:
-                less += 2
-            else:
-                less += 1
+    less = 0
+    if halfdayend or halfdaybegin:
+        if halfdaybegin and halfdayend:
+            less += 1
+        else:
+            less += 0.5
 
-        return working_days - less
+    return working_days - less

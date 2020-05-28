@@ -13,11 +13,12 @@ class User(UserMixin,db.Model):
     __tablename__ = 'users'
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(64), index=True, unique=True)
-    email = db.Column(db.String(120), index=True, unique=True)
+    # email = db.Column(db.String(120), index=True, unique=True)
     password_hash = db.Column(db.String(128))
-    posts = db.relationship('Post', backref = 'author', lazy = 'dynamic')
+    admin = db.Column(db.Boolean)
     leaves = db.relationship('Leaves', backref = 'employee', lazy = 'dynamic')
     # back ref allows us to see the user given the leave, leave.author will return us the user id
+
     
     def __repr__(self):
         return '<User {}>'.format(self.username)    
@@ -29,20 +30,16 @@ class User(UserMixin,db.Model):
     def check_password(self, password):
         return check_password_hash(self.password_hash, password)
 
+    def is_administrator(self):
+        """
+        simple admin checker
+        """
+        return self.admin 
+ 
+class Admins(object):
+    Admin_ls = ['john', 'tom']
 
-    # add in logic for admin later in roles
 
-
-
-
-class Post(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    body = db.Column(db.String(140))
-    timestamp = db.Column(db.DateTime, index=True, default=datetime.utcnow) # pass the utc function, utc enables display of the local time
-    user_id = db.Column(db.Integer, db.ForeignKey('users.id'))
-
-    def __repr__(self):
-        return '<Post {}>'.format(self.body)
 
 class Leaves(db.Model):
     __tablename__ = 'leaves'
@@ -57,16 +54,23 @@ class Leaves(db.Model):
     
 
     def __repr__(self):
-        return '<Leaves {}>'.format(self.note) # for debugging later
+        return '<Leaves {}>'.format(self.id) # for debugging later
 
 
 class PublicHolidays(db.Model):
     """
     have a form for editing public holidays
+    only accessible to admin
     """
     __tablename__ = "holidays"
     id = db.Column(db.Integer, primary_key  = True)
-    # hoilday
+    name = db.Column(db.String(140))
+    date = db.Column(db.Date) # might index later
+
+    def __repr__(self):
+        return '<PublicHoliday {}'.format(self.name)
+
+
 
 
 
