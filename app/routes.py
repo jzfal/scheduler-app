@@ -11,7 +11,7 @@ from flask_login import login_required
 from flask import request
 from werkzeug.urls import url_parse
 from app import db
-from app.forms import RegistrationForm, LeaveRequestForm, PublicHolidaysForm
+from app.forms import RegistrationForm, LeaveRequestForm, PublicHolidaysForm, UserSearchForm
 from datetime import date
 
 # index will route to our helper pages lea
@@ -21,6 +21,10 @@ from datetime import date
 @login_required  # for use with login manager, to ensure still log in
 def index():
     posts = "Welcome to leave scheduler !"
+
+    # if current_user.is_administrator:
+
+
     return render_template('index.html', title = 'Home', posts = posts)
 
 
@@ -40,6 +44,7 @@ def login():
             next_page = url_for('index')
         return redirect(next_page)
     return render_template('login.html', title = 'Sign In', form = form)
+
 
 @app.route('/logout')
 def logout():
@@ -67,6 +72,7 @@ def register():
         return redirect(url_for('login'))
     return render_template('register.html', title='Register', form=form)
 
+
 @app.route('/user_statistics/<username>', methods = ['GET','POST'])
 @login_required
 def user_statistics(username):
@@ -75,19 +81,15 @@ def user_statistics(username):
     # display the leave statistics
     # use this as a router to other pages
     # leaves is a list, index is the leaves id
-    # print(type(leaves[1]))
-    # def count_num_leaves(start_dt, end_dt, public_ls, halfdaybegin, halfdayend):
 
     mod_leaves = [] 
     approved_days = 0
     for i in range(len(leaves)):
         working_days = count_num_leaves(leaves[i].startdate,leaves[i].enddate, leaves[i].halfdayend,leaves[i].halfdaybegin)
         mod_leaves.append({'leave_id':leaves[i].id,'startdate':leaves[i].startdate, 'enddate': leaves[i].enddate, 'TotalDays':working_days, "Status": leaves[i].status})
-        if leaves[i].status == "Approved":
-            # have to log this in the admin side
+        if leaves[i].status == "Approved" or leaves[i].status == "Canceling":
+            # have to log this in the admin side, canceling still counts to annual leave, need to wait for admin to change to cancel
             approved_days += working_days
-    # print(leaves[1].id)
-    # return render_template('user_statistics.html', user = user, leaves = leaves, temp_ls = temp_ls)
     number_of_leaves_remaining = 15 - approved_days # take this minus the number of days that have approved leaves
     return render_template('user_statistics.html', user = user, mod_leaves = mod_leaves, number_of_leaves_remaining = number_of_leaves_remaining)
     
@@ -204,7 +206,8 @@ def all_leave_request():
         else:
             curr_user = u.username
             curr_id = u.id
-
+            # find out the current leave statistic of this user 
+            total_approved = count_total_leaves(u)
             leaves = u.leaves.order_by(Leaves.id.asc()).all()
             for leave in leaves:
                 curr_startdate = leave.startdate
@@ -214,6 +217,7 @@ def all_leave_request():
                 curr_totaldays = count_num_leaves(curr_startdate, curr_enddate,curr_halfdayend,curr_halfdaybegin)
                 curr_status = leave.status
                 curr_leaveid = leave.id
+                curr_exceed = (total_approved + curr_totaldays) > 15
                 if curr_status in ('Rejected', 'Approved', 'Canceled'): 
                     # for this status admin does not need to approve
                     continue
@@ -225,9 +229,53 @@ def all_leave_request():
                                 'starthalf': curr_halfdaybegin,
                                 'endhalf': curr_halfdayend,
                                 'TotalDays': curr_totaldays,
-                                'Status': curr_status})
+                                'Status': curr_status,
+                                'Exceed': curr_exceed})
 
     return render_template('all_leave_request.html', pendings = pendings, username = current_user.username)
+
+@app.route('/all_user_statistics_search', methods = ["GET","POST"])
+@login_required
+def all_user_statistics_search():
+    """
+    no action required on this page
+    extracts all user statistics 
+    user_id, username, 
+    
+    admin inputs user name, and redirect to that users statistics
+    """
+    form = UserSearchForm()
+    return render_template('all_user_statistics_search.html', form = form)
+
+
+
+
+@app.route('/all_user_statistics', methods = ["GET","POST"])
+@login_required
+def all_user_statistics():
+    name = request.form['name']
+    user = User.query.filter_by(username = name).first_or_404()
+    leaves = user.leaves.order_by(Leaves.id.asc()).all()
+    if len(leaves) == 0:
+        flash("No results found")
+        return redirect(url_for('all_user_statistics_search'))
+
+    mod_leaves = [] 
+    approved_days = 0
+    for i in range(len(leaves)):
+        working_days = count_num_leaves(leaves[i].startdate,leaves[i].enddate, leaves[i].halfdayend,leaves[i].halfdaybegin)
+        mod_leaves.append({'leave_id':leaves[i].id,'startdate':leaves[i].startdate, 'enddate': leaves[i].enddate, 'TotalDays':working_days, "Status": leaves[i].status})
+        if leaves[i].status == "Approved" or leaves[i].status == "Canceling":
+            approved_days += working_days
+    number_of_leaves_remaining = 15 - approved_days # take this minus the number of days that have approved leaves
+    return render_template('all_user_statistics.html', user = user,
+                            mod_leaves = mod_leaves,
+                            number_of_leaves_remaining = number_of_leaves_remaining)
+
+
+
+
+
 
 @app.route('/handle_all_leave_data', methods = ['POST','GET'])
 @login_required
@@ -283,7 +331,7 @@ def handle_all_data():
 def count_num_leaves(start_dt, end_dt, halfdayend, halfdaybegin):
     """
     Helper function to calculate number of work days
-    public_ls is a list of public holidays without weekends
+    
     """
     # get the list of public holidays
     publicholidays = PublicHolidays.query.order_by(PublicHolidays.date.asc()).all() # this is the base query object
@@ -324,7 +372,37 @@ def count_num_leaves(start_dt, end_dt, halfdayend, halfdaybegin):
 
     # logic for when holiday is in the range of working days and holiday is not a weekend
 
+    holidays_counter = 0
+
+    for date in holiday_dates:
+        if (start_dt <= date <= end_dt) and (date.weekday() not in (5,6)):
+            # checks if the date is in the leave interval and if it is a weekday
+            holidays_counter += 1
+
+
+    return working_days - less - holidays_counter
+        
 
 
 
-    return working_days - less
+
+
+def count_total_leaves(user):
+    """
+    given the user, return the total number of approved leaves
+    user is an object of class User
+    """
+    approved_days = 0
+    leaves = user.leaves.order_by(Leaves.id.asc()).all()
+    for leave in leaves:
+        if leave.status == "Approved":
+            approved_days += count_num_leaves(leave.startdate,
+                                            leave.enddate,
+                                            leave.halfdaybegin,
+                                            leave.halfdayend)
+    
+    return approved_days
+
+
+
+

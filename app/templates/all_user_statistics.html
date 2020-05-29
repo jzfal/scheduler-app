@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+
+{% block content %}
+    <h1>Hi, {{current_user.username}}!</h1>
+    <h2>Statistics for : {{user.username}}</h2>
+    <table border="1">
+        <tr>
+            <td>Leave Request ID</td>
+            <td>Start Date</td>
+            <td>End Date</td>
+            <td>Total Days</td>
+            <td>Status</td>
+        </tr>
+        {% for leave in mod_leaves %}
+        <tr>
+            <td>{{ leave.leave_id }}</td>
+            <td>{{ leave.startdate }}</td>
+            <td>{{ leave.enddate }}</td>
+            <td>{{ leave.TotalDays}}</td>
+            <td>{{ leave.Status}}</td>
+        </tr>
+        {% endfor %}
+    </table>
+    <p>Number of leave days remaining : 
+        <b>{{ number_of_leaves_remaining}}</b>
+    </p>
+{% endblock %}

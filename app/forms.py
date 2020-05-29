@@ -1,5 +1,5 @@
 from flask_wtf import FlaskForm
-from wtforms import StringField, PasswordField, BooleanField, SubmitField, TextAreaField
+from wtforms import StringField, PasswordField, BooleanField, SubmitField, TextAreaField, SelectField
 from wtforms.validators import ValidationError, DataRequired, Email, EqualTo
 from app.models import User, PublicHolidays
 from datetime import date
@@ -75,3 +75,11 @@ class PublicHolidaysForm(FlaskForm):
         if publicholiday is not None:
             # cannot have two holidays of the same name
             raise ValidationError('Public holiday has already been added please enter another Holiday')
+
+
+class UserSearchForm(FlaskForm):
+    users = User.query.all()
+    choices = [('Name', user.username) for user in users if not(user.is_administrator())]
+    # print(choices)
+    toselect = SelectField('Search for employee: ', choices=choices)
+    submit = SubmitField('Search')

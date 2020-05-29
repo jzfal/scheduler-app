@@ -27,21 +27,34 @@
 #### Join errors
 - Refer to each user model and then request for leaves model
 
-### To Do:
+
+#### Search error
+- Whenever a new user joins, the search form is not updated automatically
+## To Do:
 - For cancelling, need to add in checker for approve status, approve status can only be given by the admin (done)
 - For admin account, need dbmodel and form for editing the list of public holidays (done)
 - Remove email field from registration (done)
 - need to handle the status where user is in the midst of leave, and wants to cancel leave (done)
     - need to address the cancelling state, where status is originally "Approved" (done)
-- In order to activate admin, must create user from regristration page (done)
+- In order to activate admin, must create user from regristration page, do not create admin user from shell as admin rights is granted at registration (done)
 - Check date validation for inputing new holidays (done)
 - Need to validate leave request by name(done) 
-- Validate leave request form 
-    - For leave statistics, need to update with the other status plus need take into account public holidays 
-- Admin needs a leave statistic veiw to see all user leave statistics
-- Admin when approving leave needs to be able to see "request exceeds capacity"
-- Need to add in logic for when a user cancels their approved leave requests at a time after the start date, this will flag up as `status == Canceling`, if user cancels Approved leave request just let it show up as  `status == Canceled`.
+- Validate leave request form  (done)
+    - For leave statistics, need to update with the other status plus need take into account public holidays (done) 
+- Admin needs a leave statistic view to see all user leave statistics
+- Admin when approving leave needs to be able to see "request exceeds capacity", add into template "all_leave_request" (done)
+- Need to add in logic for when a user cancels their approved leave requests at a time after the start date, this will flag up as `status == Canceling`. (done)
 - Add data validation for leave request, if start or end date is a holiday, then flash error (done)
+- Update id for all html tables, just show a counter instead of the actual primarykey
+
+
+
+### Test simple user routines
+- When admin approve leave, leave statistic should change
+- When admin approve leave, and user cancel leave, status should change to 'Canceling', do not delete entry, leave days remaining should remain unchanged, once admin rejects then delete entry, revise leave statistic
+
+
+### Test simple admin routines
 
 
 ### Latest App Updates

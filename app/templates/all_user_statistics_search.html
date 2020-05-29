@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+
+
+{% block content %}
+    <h1>Hi, {{current_user.username}}, search for employee statistics</h1>
+    <form  action='/all_user_statistics' method = "POST" >
+        {{ form.hidden_tag() }}
+        <p>
+            {{ form.toselect.label }}<br>
+            <input type = text name = 'name'{{ form.toselect(size=32) }}<br>
+            {% for error in form.toselect.errors %}
+            <span style="color: red;">[{{ error }}]</span>
+            {% endfor %}
+        </p>
+        <p>{{ form.submit() }}</p>
+    </form>
+{% endblock %}
+    

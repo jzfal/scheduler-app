@@ -4,7 +4,8 @@
 
 {% block content %}
     <h1>Hi, {{current_user.username}}!</h1>
-    <h2>Please select the request which you would like to cancel</h2>
+    <p>Please select the holiday which you would like <br>
+        to remove</p>
     <form  action='/handle_all_data' method = "POST" >
     <table border="1">
         <tr>
