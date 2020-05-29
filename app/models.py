@@ -37,6 +37,9 @@ class User(UserMixin,db.Model):
         return self.admin 
  
 class Admins(object):
+    """
+    add in to the list of admins
+    """
     Admin_ls = ['john', 'tom']
 
 

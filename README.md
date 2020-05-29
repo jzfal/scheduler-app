@@ -1,8 +1,5 @@
 # DTL Web Developer Project Assessment 
 
-
-
-
 ## Architecture of Web Application
 
 ## Instructions on how to run the Web Application 
@@ -14,54 +11,52 @@
 
 
 ### config module
-- For seperation of concerns
+- For seperation of concerns different configuration setups
 
 
 ### upgrade db
 - When upgrading db run the migrate function with flask `flask db migrate -m "posts table"` followed by `flask db upgrade` to upgrade the database. Possible to downgrade the database as well
 
-
-### Error in flask_shell
+## Errors
+#### Error in flask_shell
 - when set to development enviroment, name error is raised in `flask shell`
 
-### Error when creating instance of Leaves 
-the name of the foreign key has to be the same as the backref
+#### Error when creating instance of Leaves 
+- the name of the foreign key has to be the same as the backref
 
-### TO DO 
-- Viewing the list of leave request (show status) for users
-- Seeing their own leaving statistic
-    - Leave left: Number of days left of annual leave
+#### Join errors
+- Refer to each user model and then request for leaves model
 
-#### for admin
-- editable list of public holidays of a specific year
-- reject or approve a leave request
-    - every leave request needs admins approval
-    - when a user cancels their approved leave request in mid of the period it needs to be approve by an administrator
-
-- Veiwing all peoples leave requests and statistics
-
-
-#### other requirements
-- Annual leave is always 15 days
-- Leave request states
-
-
-### todo:
-- For cancelling, need to add in checker for approve status, approve status can only be given by the admin
-- For leave statistics, need to update with the other status plus need take into account public holidays
-- For admin account, need dbmodel and form for editing the list of public holidays
-- Remove email field from registration
+### To Do:
+- For cancelling, need to add in checker for approve status, approve status can only be given by the admin (done)
+- For admin account, need dbmodel and form for editing the list of public holidays (done)
+- Remove email field from registration (done)
+- need to handle the status where user is in the midst of leave, and wants to cancel leave (done)
+    - need to address the cancelling state, where status is originally "Approved" (done)
+- In order to activate admin, must create user from regristration page (done)
+- Check date validation for inputing new holidays (done)
+- Need to validate leave request by name(done) 
 - Validate leave request form 
-- need to handle the status where user is in the midst of leave, and wants to cancel leave
-    - need to address the cancelling state, wher status is originally "Approved"
-- In order to activate admin, must create user from regristration page
+    - For leave statistics, need to update with the other status plus need take into account public holidays 
+- Admin needs a leave statistic veiw to see all user leave statistics
+- Admin when approving leave needs to be able to see "request exceeds capacity"
+- Need to add in logic for when a user cancels their approved leave requests at a time after the start date, this will flag up as `status == Canceling`, if user cancels Approved leave request just let it show up as  `status == Canceled`.
+- Add data validation for leave request, if start or end date is a holiday, then flash error (done)
 
 
-### Latest
+### Latest App Updates
 
 - Data Models intact
 - Admin registration must be done through registration form
 - Adding new holiday and removing existing holiday in order
+- UNABLE TO RESOLVE INNER JOIN TO SHOW ALL THE LEAVE REQUEST (resolved)
+- Admin able to approve request
+- All forms intact
 
-- UNABLE TO RESOLVE INNER JOIN TO SHOW ALL THE LEAVE REQUEST
+
+### Resource list 
+- [multiple validators](https://stackoverflow.com/questions/21815067/how-do-i-validate-wtforms-fields-against-one-another)
+- [flask blogging tutorial](https://stackoverflow.com/questions/21815067/how-do-i-validate-wtforms-fields-against-one-another)
+
+
 

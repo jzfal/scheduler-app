@@ -5,17 +5,17 @@
 {% block content %}
     <h1>Hi, {{current_user.username}}!</h1>
     <h2>Please select the request which you would like to approve</h2>
-    <form  action='/handle_all_data' method = "POST" >
+    <form  action='/handle_all_leave_data' method = "POST" >
     <table border="1">
         <tr>
-            <td>User</td>
-            <td>Start Date</td>
-            <td>End Date</td>
-            <td>Take a half at start date</td>
-            <td>Take a half at end date</td>
-            <td>Total Days</td>
-            <td>Status</td>
-            <td>Action</td>
+            <td><b>User</b></td>
+            <td><b>Start Date</b></td>
+            <td><b>End Date</b></td>
+            <td><b>Take a half at start date</b></td>
+            <td><b>Take a half at end date</b></td>
+            <td><b>Total Days</b></td>
+            <td><b>Status</b></td>
+            <td><b>Action</b></td>
         </tr>
         {% for pending in pendings %}
         <tr>
@@ -23,13 +23,18 @@
             <td>{{ pending.startdate }}</td>
             <td>{{ pending.enddate }}</td>
             <td>{{ pending.starthalf}}</td>
-            <td>{{ pending.startend}}</td>
+            <td>{{ pending.endhalf}}</td>
             <td>{{ pending.TotalDays}}</td>
             <td>{{ pending.Status}}</td>
             <td><select id="action" name="action">
-                <option value = {{ "Approved," ~ pending.leave_id ~ }}>Approved</option>
-                <option value = {{ "Rejected," ~ pending.leave_id ~ }}>Rejected</option>
-                <option value = {{ "Canceled," ~ pending.leave_id ~ }}>Canceled</option>
+                {% if pending.Status == "Canceling" %}
+                <option value = {{ "Canceled," ~ pending.leaveid}}>Canceled</option>
+                <option value = {{ "Empty," ~ pending.leaveid}}></option>
+                {% else %}
+                <option value = {{ "Approved," ~ pending.leaveid}}>Approved</option>
+                <option value = {{ "Rejected," ~ pending.leaveid}}>Rejected</option>
+                <option value = {{ "Empty," ~ pending.leaveid}}></option>
+                {% endif %}
             </select>
         </tr>
         {% endfor %}

@@ -2,6 +2,14 @@
 
 {% block content %}
     <h1>Hi, {{current_user.username}}!</h1>
+    <p>This is a list of your leave request.<br>
+        Take note that request that have been
+        canceled by you have been removed from this list.<br>
+        Request that have been canceled by the admin
+        will still appear here.<br>
+        Request cancelled by admins are 
+        request that have been approved by the admin but canceled by the user.
+    </p> 
     <table border="1">
         <tr>
             <td>Leave Request ID</td>

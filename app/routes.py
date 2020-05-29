@@ -120,25 +120,23 @@ def leave_cancel(username):
 @login_required
 def handle_data():
     """
-    this view is linked to cancelling leave view
+    this view is linked to cancelling leave view for user
     """
     # user = User.query.filter_by(username = current_user.username).first_or_404()
     path = request.form.getlist("returnthis")
-    path = [int(p) for p in path] 
-    # leaves = user.leaves.order_by(Leaves.id.asc()).all()  
-    for p in path: #for id in list of ids
-        delete_q = Leaves.query.get(p) #query by primary key
-        db.session.delete(delete_q) 
+    for p in path:
+        # will return status,leave_id
+        curr_status = p.split(',')[0]
+        curr_leaveid = p.split(',')[1]
+        if curr_status == 'Created':
+            delete_q = Leaves.query.get(curr_leaveid) #query by primary key
+            db.session.delete(delete_q)
+        elif curr_status == 'Approved':
+            # the case where curr status is Approved
+            q = Leaves.query.get(curr_leaveid)
+            q.status = 'Canceling'
     db.session.commit()
-    # delete_q = user.leaves.delete().where(user.leaves.id in path)
-    # path returned successfully
-    # need to update the leave request
-    # user = User.query.filter_by(username = current_user.username).first_or_404()
-    # for p in path:
 
-    # leaves_to_del = user.leaves.filter_by(Leaves.id in path).all()
-    # leaves = user.leaves.order_by(Leaves.id.asc()).all()  
-    # print(leaves_to_del)
     flash('Leave request updated!')
     return(redirect('/user_statistics/{}'.format(current_user.username)))
 
@@ -198,35 +196,63 @@ def all_leave_request():
 
     if request exceeds capacity, must highlight !
     """
-    # joined_table = db.session.query(User).outerjoin(Leaves)
-    joined_table = db.session.query(User).join(Leaves).all()
-    print(joined_table)
-    # print(joined_table.query.first())
-    leaves = joined_table
-    # db.session.query(Leaves).select_from(User).\
-    #     filter_by(users.id = )
-    # user = User.query.all()
-    # for u in user:
-    #     print(u.username)
-    # leaves = user.leaves.order_by(Leaves.id.asc()).all()
-    # # need to show all the pending request, 
-    # user = User.query.all() # get all users 
-    # # print(user[0])
-    # leaves = user.leaves.order_by(User.id.asc()).all()  # join all users with leaves table
-    # print(leaves)
-    # raise TypeError
+    user = User.query.all()
     pendings = []
-    # for i in range(len(leaves)):
-    #     # print(leaves[i])
-    #     curr_status = leaves[i].status
-    #     if curr_status == "Created" or curr_status == "Cancelling":
-    #         working_days = count_num_leaves(leaves[i].startdate,leaves[i].enddate, leaves[i].halfdayend,leaves[i].halfdaybegin)
+    for u  in user:
+        if u.is_administrator():
+            continue # remove all admins
+        else:
+            curr_user = u.username
+            curr_id = u.id
 
-    #         pendings.append({'leave_id':leaves[i].id,'username':leaves[i].username,'startdate':leaves[i].startdate, 'enddate': leaves[i].enddate,"starthalf":leaves[i].halfdaybegin,"endhalf":leaves[i].halfdayend,'TotalDays':working_days, "Status": curr_status})
-    #     else:
-    #         continue
+            leaves = u.leaves.order_by(Leaves.id.asc()).all()
+            for leave in leaves:
+                curr_startdate = leave.startdate
+                curr_enddate = leave.enddate
+                curr_halfdaybegin = leave.halfdaybegin
+                curr_halfdayend = leave.halfdayend
+                curr_totaldays = count_num_leaves(curr_startdate, curr_enddate,curr_halfdayend,curr_halfdaybegin)
+                curr_status = leave.status
+                curr_leaveid = leave.id
+                if curr_status in ('Rejected', 'Approved', 'Canceled'): 
+                    # for this status admin does not need to approve
+                    continue
+
+                pendings.append({'username':curr_user,
+                                'leaveid':curr_leaveid,
+                                'startdate':curr_startdate,
+                                'enddate':curr_enddate,
+                                'starthalf': curr_halfdaybegin,
+                                'endhalf': curr_halfdayend,
+                                'TotalDays': curr_totaldays,
+                                'Status': curr_status})
 
     return render_template('all_leave_request.html', pendings = pendings, username = current_user.username)
+
+@app.route('/handle_all_leave_data', methods = ['POST','GET'])
+@login_required
+def handle_all_leave_data():
+    """
+    main duties are to write the database to change the status of the 
+    leave request
+    """    
+    path = request.form.getlist("action")
+    for p in path: 
+        new_status = p.split(',')[0] # new status by admin
+        curr_leave_id = p.split(',')[1] # leave id of corresponding status
+        if new_status == 'Empty':
+            # allow admin to delay approval
+            continue
+        else:
+            # if status is rejected, then remove from admin view
+            update_q = Leaves.query.get(curr_leave_id)
+            update_q.status = new_status
+        db.session.commit()
+    flash('Leave status has been updated')
+    return(redirect(url_for('all_leave_request')))
+
+
+
 
 @app.route('/handle_all_data', methods = ['POST','GET'])
 @login_required
@@ -259,32 +285,46 @@ def count_num_leaves(start_dt, end_dt, halfdayend, halfdaybegin):
     Helper function to calculate number of work days
     public_ls is a list of public holidays without weekends
     """
+    # get the list of public holidays
+    publicholidays = PublicHolidays.query.order_by(PublicHolidays.date.asc()).all() # this is the base query object
+    holiday_dates = [p.date for p in publicholidays]
+    
+    
+    
+    # day counting logic
     num_days = (end_dt -start_dt).days +1
     num_weeks =(num_days)//7
     a=0
-    #condition 1
+    # condition 1
     if end_dt.strftime('%a')=='Sat':
         if start_dt.strftime('%a') != 'Sun':
             a= 1
-    #condition 2
+    # condition 2
     if start_dt.strftime('%a')=='Sun':
         if end_dt.strftime('%a') !='Sat':
             a =1
-    #condition 3
+    # condition 3
     if end_dt.strftime('%a')=='Sun':
         if start_dt.strftime('%a') not in ('Mon','Sun'):
             a =2
-    #condition 4        
+    # condition 4        
     if start_dt.weekday() not in (0,6):
         if (start_dt.weekday() -end_dt.weekday()) >=2:
             a =2
     working_days =num_days -(num_weeks*2)-a
 
     less = 0
+
+    # half day logic 
     if halfdayend or halfdaybegin:
         if halfdaybegin and halfdayend:
             less += 1
         else:
             less += 0.5
+
+    # logic for when holiday is in the range of working days and holiday is not a weekend
+
+
+
 
     return working_days - less

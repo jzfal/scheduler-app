@@ -1,7 +1,7 @@
 from flask_wtf import FlaskForm
 from wtforms import StringField, PasswordField, BooleanField, SubmitField, TextAreaField
 from wtforms.validators import ValidationError, DataRequired, Email, EqualTo
-from app.models import User
+from app.models import User, PublicHolidays
 from datetime import date
 from wtforms.fields.html5 import DateField
 
@@ -32,33 +32,46 @@ class RegistrationForm(FlaskForm):
 
 
 class LeaveRequestForm(FlaskForm):
-    startdate = DateField('Start date', format= '%Y-%m-%d')
-    enddate = DateField('End date', format= '%Y-%m-%d')
+    startdate = DateField('Start date', format= '%Y-%m-%d', validators=[DataRequired()])
+    enddate = DateField('End date', format= '%Y-%m-%d',  validators=[DataRequired()])
     note = TextAreaField('Note')
     halfdaybegin = BooleanField('Take a half day at the beginning of leave')
     halfdayend = BooleanField('Take a half day at the end of leave')
     submit = SubmitField('Submit Request')
 
-    # def __init__(self,*args, **kwargs):
-    #     super().__init__(*args, **kwargs)
-    #     if not self.startdate.data:
-    #         self.startdate.data =date.today() 
-    #     if not self.enddate.data:
-    #         self.enddate.data = date.today() 
+   
+    def validate(self):
+        if not super().validate():
+            return False
+        result = True
+        if self.enddate.data < self.startdate.data:
+            self.enddate.errors.append('End date must not be earlier than start date')
+            result = False
+        return result
 
-    # def validate_startdate(self, startdate):
-    #     if self.startdate.data < date.today():
-    #         raise ValidationError('Please enter a valid starting date')
-    # def validate_enddate(self, enddate):
-    #     if self.enddate.data < date.today():
-    #         raise ValidationError('Please enter a valid ending date')
-    # def validate_dates(self):
-    #     if self.enddate.data < self.startdate.data:
-    #         raise ValidationError("Start date is later than enddate")
+    def validate_startdate(self, startdate):
+        if startdate.data < date.today():
+            raise ValidationError('Choose a valid start date')
+
+        publicholiday = PublicHolidays.query.filter_by(date = startdate.data).first()
+        if publicholiday is not None:
+            # start date is a public holiday
+            raise ValidationError('Start date is a public holiday, choose another startdate')
+    def validate_enddate(self, enddate):
+        if enddate.data < date.today():
+            raise ValidationError('Choose a valid end date')
+        publicholiday = PublicHolidays.query.filter_by(date = enddate.data).first()
+        if publicholiday is not None:
+            # start date is a public holiday
+            raise ValidationError('End date is a public holiday, choose another startdate')
 
 class PublicHolidaysForm(FlaskForm):
     name = StringField('Holiday Name', validators= [DataRequired()])
     date = DateField('Date', format = '%Y-%m-%d')
     submit = SubmitField('Submit Holiday')
 
-
+    def validate_name(self, name):
+        publicholiday = PublicHolidays.query.filter_by(name = name.data).first()
+        if publicholiday is not None:
+            # cannot have two holidays of the same name
+            raise ValidationError('Public holiday has already been added please enter another Holiday')
