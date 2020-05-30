@@ -7,8 +7,8 @@
         {{ form.hidden_tag() }}
         <p>
             {{ form.toselect.label }}<br>
-            <input type = text name = 'name'{{ form.toselect(size=32) }}<br>
-            {% for error in form.toselect.errors %}
+            <input type = text name = 'name'{{ form.toselect(size=32) }}
+            {% for error in form.toselect.errors %} >
             <span style="color: red;">[{{ error }}]</span>
             {% endfor %}
         </p>

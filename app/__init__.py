@@ -15,5 +15,5 @@ login.login_view = 'login' # route to login page, same name as in url_for()
 
 from app import routes, models
 
-
+# db.create_all()
 
